@@ -17,12 +17,8 @@ func main() {
 		var matches = reBags.FindAllStringSubmatch(line, -1)
 		var b = matches[0][2]
 		for i := 1; i < len(matches); i++ {
-			if matches[i][0] == "no other bags" {
-				continue
-			}
-			if nest[b] == nil {
-				nest[b] = make(map[string]int)
-			}
+			if matches[i][0] == "no other bags" { continue }
+			if nest[b] == nil { nest[b] = make(map[string]int) }
 			j, _ := strconv.Atoi(strings.TrimSpace(matches[i][1]))
 			nest[b][matches[i][2]] = j
 		}
@@ -35,9 +31,7 @@ func main() {
 		for len(q) > 0 {
 			var bag = q[0]
 			q = q[1:]
-			if contains[bag] {
-				continue
-			}
+			if contains[bag] { continue }
 			contains[bag] = true
 			for b, nb := range nest {
 				for n := range nb {
@@ -49,10 +43,7 @@ func main() {
 		}
 	}
 	{
-		type state struct {
-			bag string
-			mul int
-		}
+		type state struct { bag string; mul int }
 		var q = make([]state, 0)
 		q = append(q, state{"shiny gold", 1})
 		for len(q) > 0 {
