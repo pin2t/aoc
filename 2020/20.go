@@ -20,20 +20,43 @@ func main() {
         } else if line != "" {
             t = append(t, []byte(line))
         } else {
-            addAll(tile{ id, t })
+            tiles = appendAll(tiles, tile{id, t })
             t = make([][]byte, 0)
             id = 0
             ntiles++
         }
     }
-    addAll(tile{ id, t })
+    tiles = appendAll(tiles, tile{id, t })
     ntiles++
     size = int(math.Sqrt(float64(ntiles)))
     for r := 0; r < size; r++ {
         layout = append(layout, make([]tile, size))
     }
     put(0, 0)
-    fmt.Println(layout[0][0].id * layout[0][size - 1].id * layout[size - 1][0].id * layout[size - 1][size - 1].id)
+    var img = tile{ 0, nil }
+    var rough, cutSize = 0, len(tiles[0].t) - 2
+    var imgSize = size * cutSize
+    img.t = make([][]byte, imgSize)
+    for i := 0; i < len(img.t); i++ { img.t[i] = make([]byte, imgSize) }
+    for imgr := 0; imgr < imgSize; imgr++ {
+        for imgc := 0; imgc < imgSize; imgc++ {
+            var tr, tc, r, c = imgr / cutSize, imgc / cutSize, imgr % cutSize + 1, imgc % cutSize + 1
+            img.t[imgr][imgc] = layout[tr][tc].t[r][c]
+            if img.t[imgr][imgc] == '#' { rough++ }
+        }
+    }
+    var imgs = appendAll(make([]tile, 0), img)
+    var monsters = 0
+    for _, img := range imgs {
+        for r := 0; r < imgSize - 3; r++ {
+            for c := 0; c < imgSize - 20; c++ {
+                if img.monster(r, c) { monsters++ }
+            }
+        }
+        if monsters > 0 { break }
+    }
+    fmt.Println(layout[0][0].id * layout[0][size - 1].id * layout[size - 1][0].id * layout[size - 1][size - 1].id,
+        rough - monsters * 15)
 }
 
 var size = 0
@@ -41,7 +64,7 @@ var tiles = make([]tile, 0)
 var layout = make([][]tile, 0)
 var used = make(map[int]bool)
 
-func addAll(t tile) {
+func appendAll(tiles []tile, t tile) []tile {
     tiles = append(tiles, t)
     var tln = t.rotate()
     tiles = append(tiles, tln)
@@ -57,6 +80,7 @@ func addAll(t tile) {
     tiles = append(tiles, tln)
     tln = tln.rotate()
     tiles = append(tiles, tln)
+    return tiles
 }
 
 func put(r, c int) bool {
@@ -119,4 +143,19 @@ func (t tile) matchLeft(left tile) bool {
         if t.t[r][0] != left.t[r][len(left.t[r]) - 1] { return false }
     }
     return true
+}
+
+func (t tile) monster(r, c int) (m bool) {
+    var ptn = [3][]byte {
+        []byte("                  # "),
+        []byte("#    ##    ##    ###"),
+        []byte(" #  #  #  #  #  #   "),
+    }
+    m = true
+    for i := 0; i < len(ptn) && m; i++ {
+        for j := 0; j < len(ptn[i]) && m; j++ {
+            if ptn[i][j] == '#' { m = t.t[r + i][c + j] == '#' }
+        }
+    }
+    return
 }
