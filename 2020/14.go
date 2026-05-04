@@ -9,7 +9,7 @@ import "fmt"
 
 func main() {
     var mem, mem2 = make(map[int64]int64), make(map[int64]int64)
-    var reMem = regexp.MustCompile(`^mem\[(\d+)\]\s=\s(\d+)$`)
+    var reMem = regexp.MustCompile(`^mem\[(\d+)]\s=\s(\d+)$`)
     var ormask, andmask = int64(0), int64(-1)
     var mask string
     var fbits = 0
