@@ -1,3 +1,15 @@
 [submodule "2021"]
 	path = 2021
 	url = https://github.com/pin2t/aoc2021.git
+[submodule "2022"]
+	path = 2022
+	url = https://github.com/pin2t/aoc2022.git
+[submodule "2023"]
+	path = 2023
+	url = https://github.com/pin2t/aoc2023.git
+[submodule "2024"]
+	path = 2024
+	url = https://github.com/pin2t/aoc2024.git
+[submodule "2025"]
+	path = 2025
+	url = https://github.com/pin2t/aoc2025.git
