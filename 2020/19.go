@@ -11,34 +11,34 @@ func main() {
     var reSeq = regexp.MustCompile("^(\\d+):\\s([\\d\\s]+)$")
     var reOr = regexp.MustCompile("^(\\d+):\\s([\\d\\s]+)|([\\d\\s]+)$")
     var scanner = bufio.NewScanner(os.Stdin)
-    var matched = 0
+    var matched = [2]int{ 0, 0 }
     for scanner.Scan() {
         var l = scanner.Text()
         if len(l) == 0 { break }
-        var m = reLiteral.FindAllStringSubmatch(l, -1)
-        if len(m) != 0 {
+        var m [][]string
+        if m = reLiteral.FindAllStringSubmatch(l, -1); len(m) != 0 {
             var n, _ = strconv.Atoi(m[0][1])
-            rules[n] = ruleLiteral{ m[0][2] }
-        } else {
-            m = reSeq.FindAllStringSubmatch(l, -1)
-            if len(m) != 0 {
-                var n, _ = strconv.Atoi(m[0][1])
-                rules[n] = ruleSeq{ parse(m[0][2]) }
-            } else {
-                m = reOr.FindAllStringSubmatch(l, -1)
-                if len(m) != 0 {
-                    var n, _ = strconv.Atoi(m[0][1])
-                    rules[n] = ruleOr{ parse(m[0][2]), parse(m[1][0]) }
-                }
-            }
+            rules[n] = rule{ m[0][2], make([][]int, 0) }
+        } else if m = reSeq.FindAllStringSubmatch(l, -1); len(m) != 0 {
+            var n, _ = strconv.Atoi(m[0][1])
+            rules[n] = rule{ "", [][]int{ parse(m[0][2]) } }
+        } else if m = reOr.FindAllStringSubmatch(l, -1); len(m) != 0 {
+            var n, _ = strconv.Atoi(m[0][1])
+            rules[n] = rule{ "", [][]int{ parse(m[0][2]), parse(m[1][0]) } }
         }
     }
     var messages = make([]string, 0)
     for scanner.Scan() {
         var msg = scanner.Text()
         messages = append(messages, msg)
-        if m, left := rules[0].match(msg); m && len(left) == 0 {
-            matched++
+        if m, i := matches(msg, 0, 0); m && i == len(msg) { matched[0]++ }
+    }
+    rules[8] = rule{ "", [][]int{ { 42 }, { 42, 8} } }
+    rules[11] = rule{ "", [][]int{ { 42, 31 }, { 42, 11, 31 } } }
+    for _, msg := range messages {
+        var res = matches2(msg, 0, 0)
+        for _, i := range res {
+            if i == len(msg) { matched[1]++ }
         }
     }
     fmt.Println(matched)
@@ -46,39 +46,61 @@ func main() {
 
 var rules = make(map[int]rule)
 
-type rule interface{
-    match(s string) (bool, string)
+type rule struct {
+    val string
+    rules [][]int
 }
 
-type ruleLiteral struct { lit string }
-
-func (r ruleLiteral) match(s string) (bool, string) {
-    if s[0:len(r.lit)] == r.lit { return true, s[len(r.lit):] }
-    return false, s
-}
-
-type ruleSeq struct { seq []int }
-
-func (r ruleSeq) match(s string) (bool, string) {
-    var m = true
-    var left = s
-    for _, it := range r.seq {
-        m, left = rules[it].match(left)
-        if !m { return false, left }
+func matches(s string, ri int, si int) (bool, int) {
+    var r = rules[ri]
+    if r.val != "" {
+        if si < len(s) && s[si:si+len(r.val)] == r.val {
+            return true, si + len(r.val)
+        } else {
+            return false, 0
+        }
     }
-    return true, left
+    for _, rs := range r.rules {
+        var idx = si
+        for _, ri := range rs {
+            var m, i = false, 0
+            if m, i = matches(s, ri, idx); !m {
+                idx = -1
+                break
+            }
+            idx = i
+        }
+        if idx != -1 {
+            return true, idx
+        }
+    }
+    return false, 0
 }
 
-type ruleOr struct { seq1 []int; seq2 []int }
+func matches2(s string, ri int, si int) []int {
+    var r = rules[ri]
+    var results = make([]int, 0)
+    if r.val != "" {
+        if si < len(s) && s[si:si+len(r.val)] == r.val {
+            results = append(results, si + len(r.val))
+        }
+    } else {
+        for _, rs := range r.rules {
+            results = apply(results, s, rs, 0, si)
+        }
+    }
+    return results
+}
 
-func (r ruleOr) match(s string) (bool, string) {
-    var rl = ruleSeq{ r.seq1 }
-    var m, left = rl.match(s)
-    if m { return m, left }
-    rl = ruleSeq{ r.seq2 }
-    m, left = rl.match(s)
-    if m { return m, left }
-    return false, ""
+func apply(results []int, s string, rs []int, ri int, si int) []int {
+    if ri == len(rs) {
+        return append(results, si)
+    }
+    var res = matches2(s, rs[ri], si)
+    for _, idx := range res {
+        results = apply(results, s, rs, ri + 1, idx)
+    }
+    return results
 }
 
 var reNums = regexp.MustCompile("\\d+")
