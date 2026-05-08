@@ -1,15 +1,7 @@
-# aoc
-Advent Of Code solutions
+# Advent Of Code 2020 solutions
 
 ## How to run
 
-#### Go files
+Input files are not present in the repository
 
 ``go run 01.go < inputs/01.txt``
-
-#### Java files
-
-Java 25+ is required
-
-``java day01.java < inputs/01.txt``
-
