@@ -15,32 +15,21 @@ func main() {
         prog = append(prog, i)
     }
     var maxout [2]int
-    for ph := 0; ph < 5 * 5 * 5 * 5 * 5; ph++ {
-        var phases = []int{ ph % 5, (ph / 5) % 5, (ph / 5 / 5) % 5, (ph / 5 / 5 / 5) % 5, (ph / 5 / 5 / 5 / 5) % 5 }
-        var phm = make(map[int]bool)
-        for _, p := range phases { phm[p] = true }
-        if len(phm) < 5 { continue }
+    var perms = permutations([]int{ 0, 1, 2, 3, 4 })
+    for _, phases := range perms {
         var in = make(chan int)
         var out, halt = start(in)
         drain(halt)
-        out, halt = start(prepend(phases[1], out))
-        drain(halt)
-        out, halt = start(prepend(phases[2], out))
-        drain(halt)
-        out, halt = start(prepend(phases[3], out))
-        drain(halt)
-        out, halt = start(prepend(phases[4], out))
-        drain(halt)
+        for i := 1; i <= 4; i++ {
+            out, halt = start(prepend(phases[i], out))
+            drain(halt)
+        }
         in <- phases[0]
         in <- 0
         maxout[0] = max(<-out, maxout[0])
     }
-    for ph := 0; ph < 5 * 5 * 5 * 5 * 5; ph++ {
-        var phases = []int{ ph % 5 + 5, (ph / 5) % 5 + 5, (ph / 5 / 5) % 5 + 5, (ph / 5 / 5 / 5) % 5 + 5,
-            (ph / 5 / 5 / 5 / 5) % 5 + 5 }
-        var phm = make(map[int]bool)
-        for _, p := range phases { phm[p] = true }
-        if len(phm) < 5 { continue }
+    perms = permutations([]int{ 5, 6, 7, 8, 9 })
+    for _, phases := range perms {
         var in = make(chan int)
         var out, halt = start(in)
         drain(halt)
@@ -51,10 +40,10 @@ func main() {
         out, halt = start(prepend(phases[3], out))
         drain(halt)
         out, halt = start(prepend(phases[4], out))
+        in <- phases[0]
+        in <- 0
         var lastE atomic.Int32
         go func() {
-            in <- phases[0]
-            in <- 0
             for {
                 lastE.Store(int32(<-out))
                 in <- int(lastE.Load())
@@ -66,7 +55,7 @@ func main() {
     fmt.Println(maxout)
 }
 
-func start (input chan int) (out chan int, halt chan bool) {
+func start(input chan int) (out chan int, halt chan bool) {
     var sizes = map[int]int{ 1: 4, 2: 4, 3: 2, 4: 2, 5: 0, 6: 0, 7: 4, 8: 4, 99: 0 }
     out = make(chan int)
     halt = make(chan bool)
@@ -95,6 +84,27 @@ func start (input chan int) (out chan int, halt chan bool) {
             i += sizes[op]
         }
     }()
+    return
+}
+
+func permutations(nums []int) (res [][]int) {
+    var arr = make([]int, len(nums))
+    copy(arr, nums)
+    var backtrack func(int)
+    backtrack = func(pos int) {
+        if pos == len(arr) {
+            perm := make([]int, len(arr))
+            copy(perm, arr)
+            res = append(res, perm)
+            return
+        }
+        for i := pos; i < len(arr); i++ {
+            arr[pos], arr[i] = arr[i], arr[pos]
+            backtrack(pos + 1)
+            arr[pos], arr[i] = arr[i], arr[pos]
+        }
+    }
+    backtrack(0)
     return
 }
 
