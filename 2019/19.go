@@ -65,10 +65,8 @@ func main() {
         prog[i] = n
     }
     var affected = func(x, y int) bool {
-        var mem = make(map[int]int64)
-        for k, v := range prog { mem[k] = v }
         var in = make(chan int64)
-        var out, halt = exec(mem, in)
+        var out, halt = exec(prog, in)
         go func() {
             in <- int64(x)
             in <- int64(y)
@@ -93,9 +91,7 @@ func main() {
         }
         for x := start; x <= end - 99; x++ {
             var yy = y
-            for yy < 1500 && affected(x, yy) {
-                yy++
-            }
+            for yy < 1500 && affected(x, yy) { yy++ }
             if yy - y >= 100 && end - x + 1 >= 100 {
                 square = x * 10000 + y
                 break out
