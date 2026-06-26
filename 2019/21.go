@@ -75,10 +75,10 @@ func main() {
         }
     }
     var print = func() {
-        out:
+        exit:
         for {
             select {
-            case <-halt: break out
+            case <-halt: break exit
             case c := <- out:
                 if c < 255 { fmt.Print(string(byte(c))) } else { fmt.Println(c) }
             }
