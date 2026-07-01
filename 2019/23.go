@@ -3,8 +3,8 @@ package main
 import "fmt"
 import "strings"
 import "strconv"
-import "sync"
 import "runtime"
+import "sync/atomic"
 
 func exec(mem map[int]int64, in chan int64) (out chan int64, halt chan bool) {
     var sizes = map[int]int{1: 4, 2: 4, 3: 2, 4: 2, 5: 3, 6: 3, 7: 4, 8: 4, 9: 2, 99: 1}
@@ -58,6 +58,8 @@ func exec(mem map[int]int64, in chan int64) (out chan int64, halt chan bool) {
     return
 }
 
+type packet struct {x, y int64}
+
 func main() {
     var s, prog = "", make(map[int]int64)
     fmt.Scanln(&s)
@@ -65,9 +67,12 @@ func main() {
         var n, _ = strconv.ParseInt(s, 10, 64)
         prog[i] = n
     }
-    var ins = make([]chan int64, 0)
-    var y255, mu = make(chan int), sync.Mutex{}
-    for i := 0; i < 50; i++ { ins = append(ins, make(chan int64)) }
+    var ins, idle = make([]chan packet, 0), make([]*atomic.Bool, 0)
+    var natin = make(chan packet)
+    for i := 0; i < 50; i++ {
+        ins = append(ins, make(chan packet))
+        idle = append(idle, new(atomic.Bool))
+    }
     for i := 0; i < 50; i++ {
         var in = make(chan int64)
         var out, halt = exec(prog, in)
@@ -75,14 +80,15 @@ func main() {
             in <- int64(ii)
             for {
                 select {
-                case x := <-ins[ii]:
-                    var y = <-ins[ii]
-                    in <- x
-                    in <- y
+                case p := <-ins[ii]:
+                    idle[ii].Store(false)
+                    in <- p.x
+                    in <- p.y
                 default:
+                    idle[ii].Store(true)
                     in <- -1
                 }
-                runtime.Gosched()  // give other comp chance to work so the whole process will complete faster
+                runtime.Gosched()
             }
         }(i)
         go func() {
@@ -95,17 +101,45 @@ func main() {
                     var y = <-out
                     go func(a, xx, yy int64) {
                         if a == 255 {
-                            y255 <- int(yy)
+                            natin <- packet{xx, yy}
                         } else {
-                            mu.Lock()
-                            ins[a] <- xx
-                            ins[a] <- yy
-                            mu.Unlock()
+                            ins[a] <- packet{xx, yy}
                         }
                     }(addr, x, y)
                 }
             }
         }()
     }
-    fmt.Println(<-y255)
+    var p = <-natin
+    fmt.Print(p.y)
+    var quit, natout = make(chan struct{}), make(chan packet)
+    go func() {
+        var lasty = p.y
+        go func() { natout <- p }()
+        for {
+            var p = <-natin
+            go func() { natout <- p }()
+            if p.y == lasty {
+                fmt.Println("", lasty)
+                quit <- struct{}{}
+                break
+            }
+            lasty = p.y
+            runtime.Gosched()
+        }
+    }()
+    go func() {
+        var p packet
+        for {
+            select {
+            case pp := <-natout: p = pp
+            default:
+            }
+            var all = true
+            for i := 0; i < 50 && all; i++ { all = all && idle[i].Load() }
+            if all && p.x != 0 { ins[0] <- p }
+            runtime.Gosched()
+        }
+    }()
+    <-quit
 }
