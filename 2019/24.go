@@ -45,15 +45,15 @@ func main() {
 	var levels = map[int]int{0: initial}
 	var minL, maxL = 0, 0
 	for m := 0; m < minutes; m++ {
-		next := map[int]int{}
+		var next = map[int]int{}
 		for l := minL - 1; l <= maxL+1; l++ {
 			var na int
 			for r := 0; r < sz; r++ {
 				for c := 0; c < sz; c++ {
 					if r == 2 && c == 2 { continue }
-					i := r*sz + c
-					nb := countAdj(levels, l, r, c)
-					bug := levels[l]&(1<<i) != 0
+					var i = r*sz + c
+					var nb = countAdj(levels, l, r, c)
+					var bug = levels[l]&(1<<i) != 0
 					if bug && nb == 1 {
 						na |= 1 << i
 					} else if !bug && (nb == 1 || nb == 2) {
@@ -93,36 +93,30 @@ func countAdj(levels map[int]int, level, r, c int) int {
 	}
 	// down
 	switch {
-	case r == 4:
-		cnt += bugAt(level-1, 3, 2)
+	case r == 4: cnt += bugAt(level-1, 3, 2)
 	case r == 1 && c == 2:
 		for cc := 0; cc < 5; cc++ {
 			cnt += bugAt(level+1, 0, cc)
 		}
-	default:
-		cnt += bugAt(level, r+1, c)
+	default: cnt += bugAt(level, r+1, c)
 	}
 	// left
 	switch {
-	case c == 0:
-		cnt += bugAt(level-1, 2, 1)
+	case c == 0: cnt += bugAt(level-1, 2, 1)
 	case c == 3 && r == 2:
 		for rr := 0; rr < 5; rr++ {
 			cnt += bugAt(level+1, rr, 4)
 		}
-	default:
-		cnt += bugAt(level, r, c-1)
+	default: cnt += bugAt(level, r, c-1)
 	}
 	// right
 	switch {
-	case c == 4:
-		cnt += bugAt(level-1, 2, 3)
+	case c == 4: cnt += bugAt(level-1, 2, 3)
 	case c == 1 && r == 2:
 		for rr := 0; rr < 5; rr++ {
 			cnt += bugAt(level+1, rr, 0)
 		}
-	default:
-		cnt += bugAt(level, r, c+1)
+	default: cnt += bugAt(level, r, c+1)
 	}
 	return cnt
 }
