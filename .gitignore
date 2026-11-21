@@ -1,3 +1,7 @@
 /.idea/
 /.gigaide/
 inputs
+out
+out.production.*
+.idea
+*.iml
